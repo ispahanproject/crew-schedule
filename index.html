@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>スケジュールメーカー</title>
+<title>Crew Roster</title>
 <meta name="robots" content="noindex, nofollow">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="スケジュール">
+<meta name="apple-mobile-web-app-title" content="Crew Roster">
 <meta name="theme-color" content="#1F232A">
 <script>if ('serviceWorker' in navigator) addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -187,7 +187,7 @@ body.viewer-app .wrap,body.viewer-app #overlay{display:none}
 
     <section class="panel" aria-labelledby="h-send">
       <h2 id="h-send">iPhoneに送る</h2>
-      <p class="note">iPhoneの表示アプリで、右上の一覧ボタンを長押し →「クリップボードから読み込む」または「ファイルを選ぶ」。MacとiPhoneが同じApple IDなら、ここでコピーしたコードをそのまま貼り付けられます。ファイルはAirDropなどで送ってください。</p>
+      <p class="note">iPhoneの表示アプリで、右上の一覧ボタンをタップ →「クリップボードから読み込む」または「ファイルを選ぶ」。MacとiPhoneが同じApple IDなら、ここでコピーしたコードをそのまま貼り付けられます。ファイルはAirDropなどで送ってください。</p>
       <div class="row">
         <button class="primary" id="sendCopy">コードをコピー</button>
         <button id="sendFile">ファイルで保存</button>
@@ -197,7 +197,7 @@ body.viewer-app .wrap,body.viewer-app #overlay{display:none}
   </div>
 </div>
 
-<div id="viewer" hidden aria-label="アプリ表示。右上の一覧ボタンを長押しで編集に戻る">
+<div id="viewer" hidden aria-label="アプリ表示。右上の一覧ボタンで編集に戻る">
   <div id="vScroll"><canvas id="vCal"></canvas></div>
   <canvas id="vHead"></canvas>
   <div id="vHalf"><canvas id="vHalfCv"></canvas></div>
@@ -698,8 +698,8 @@ $('ovShare').onclick = async e => { e.stopPropagation(); if (await share()) $('o
 $('overlay').onclick = () => $('overlay').classList.remove('on');
 // ---------- app-style viewer ----------
 // Full-screen imitation of the app: fixed top menu + weekday strip, scrolling calendar (the month pill follows
-// the scroll), tap a day -> half sheet; drag it up -> expanded sheet, down -> close. Long-press the list button
-// (top right) or press Esc to go back to the editor. Everything is drawn at 1320px width and scaled to the screen.
+// the scroll), tap a day -> half sheet; drag it up -> expanded sheet, down -> close. Tap the list button
+// (top right) or press Esc to go back to the editor (viewer app: open the import panel). Everything is drawn at 1320px width and scaled to the screen.
 const VW = {hilite:'', lay:null, month:'', day:null, state:'closed'};
 const ve = {root:$('viewer'), scroll:$('vScroll'), cal:$('vCal'), head:$('vHead'), half:$('vHalf'), halfCv:$('vHalfCv'),
   full:$('vFull'), fullIn:$('vFullIn'), fullCv:$('vFullCv'), grab:$('vFullGrab')};
@@ -774,12 +774,12 @@ ve.cal.addEventListener('click', e => {
   if (!hit) return;
   VW.hilite = hit.k; vRenderCal(); vOpen(hit.k);
 });
-let lp = null;
-ve.head.addEventListener('pointerdown', e => {
+// tap the list button (top right): back to the editor / the import panel. A plain tap, not a long press:
+// iOS starts its own long-press gesture after ~0.5s and cancels the page's pointer events.
+ve.head.addEventListener('click', e => {
   const r = ve.head.getBoundingClientRect(), x = (e.clientX - r.left)/vs, y = (e.clientY - r.top)/vs, [a,b,c,d] = LIST_BTN;
-  if (x >= a && x <= c && y >= b && y <= d) lp = setTimeout(vExit, 600);
+  if (x >= a && x <= c && y >= b && y <= d) vExit();
 });
-for (const t of ['pointerup','pointercancel','pointerleave']) ve.head.addEventListener(t, () => clearTimeout(lp));
 ve.root.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('keydown', e => { if (e.key === 'Escape' && !ve.root.hidden) vExit(); });
 addEventListener('resize', () => { if (!ve.root.hidden) vLayout(); });
@@ -788,7 +788,7 @@ function vEnter(){
   VW.hilite = S.hilite; VW.state = 'closed'; VW.day = null; ve.full.classList.remove('on');
   vLayout(); ve.scroll.scrollTop = 0; vSyncMonth();
 }
-function vExit(){ clearTimeout(lp); if (MODE === 'viewer') return vImportOpen(); ve.root.hidden = true; document.documentElement.style.overflow = ''; refresh(); }
+function vExit(){ if (MODE === 'viewer') return vImportOpen(); ve.root.hidden = true; document.documentElement.style.overflow = ''; refresh(); }
 $('openViewer').onclick = vEnter;
 
 // ---------- editor -> viewer transfer ----------
