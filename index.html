@@ -242,7 +242,7 @@ const TB = {"bg": "#1F232A", "top": 186, "bot": 317, "x0": 60, "textX": 98, "cap
 const MODE = 'viewer';   // 'editor' (PC: make schedules) or 'viewer' (iPhone home-screen app: display only)
 (async () => {
 const C = {bg:'#1F232A', ink:'#FFFFFF', bar:'#4B5359', pill:'#454A54', card:'#FFFFFF', cardInk:'#191C1E', sel:'#6EA8FE',
-  top:'#101216', handle:'#656873', tile:'#191C22', border:'#3A434E', sepA:'#333B45', red:'#E36645', gray:'#798287'};
+  top:'#101216', handle:'#656873', tile:'#191C22', band:'#3A3D44', border:'#3A434E', sepA:'#333B45', red:'#E36645', gray:'#798287'};
 const TYPES = [
   {id:'',    label:'なし'}, {id:'fly', label:'飛行機 緑'}, {id:'dh', label:'飛行機 白'}, {id:'off', label:'★'},
   {id:'in',  label:'入る矢印'}, {id:'out', label:'出る矢印'}, {id:'cal', label:'カレンダー'},
@@ -345,7 +345,7 @@ function layout(V = S){
     // "Unpublished roster" month: the badge makes the heading row 16px taller (heading text +8, day rows +16)
     const unpub = !!(S.unpub && S.unpub[`${y}-${pad(m+1)}`]), dy = unpub ? 16 : 0;
     const rows = Math.ceil((off+dim)/7), cells = [];
-    for (let d=1; d<=dim; d++){ const i = off+d-1; cells.push({k:keyOf(y,m,d), d, row:Math.floor(i/7), x:CX(i%7), ny: top+188+dy+Math.floor(i/7)*265}); }
+    for (let d=1; d<=dim; d++){ const i = off+d-1; cells.push({k:keyOf(y,m,d), d, row:Math.floor(i/7), col:i%7, x:CX(i%7), ny: top+188+dy+Math.floor(i/7)*265}); }
     blocks.push({y,m,top,cells,unpub,cap: top + 34 + dy/2});
     top = top + 188 + dy + (rows-1)*265 + 217;
   }
@@ -377,6 +377,10 @@ function renderCal(canvas, exportMode, V = S){
   ctx.fillStyle = C.bg; ctx.fillRect(0,0,W,LAY.H);
   if (V.menu){ const [y,m] = V.start.split('-').map(Number); drawMenu(ctx, y, m); }
   if (V.week) ctx.drawImage(STRIP, 0, V.menu ? TB.h : 0);
+  // selected day: a white card. If it is part of a pattern (days joined by the line), the pattern's first and
+  // last days get the cards and a grey band joins them behind the days in between (measured: ny-30..ny+161).
+  const selA = V.hilite ? blockStart(V.hilite) : '', selB = V.hilite ? blockEnd(V.hilite) : '';
+  const inSel = k => V.hilite && k >= selA && k <= selB;
   for (const b of LAY.blocks){
     drawText(ctx, 'head', `${MONTHS[b.m]} ${b.y}`, 37 + (HEAD_LSB[MONTHS[b.m][0]] || 0), b.cap, 'left', C.ink);
     if (b.unpub){
@@ -394,9 +398,19 @@ function renderCal(canvas, exportMode, V = S){
     if (run) runs.push(run);
     ctx.fillStyle = C.bar;
     for (const r of runs){ const x0 = Math.round(r.start.x-81.5), x1 = Math.round(r.end.x+82.5); rr(ctx, x0, r.start.ny+188, x1-x0, 12, 6); ctx.fill(); }
+    if (selA !== selB){
+      ctx.fillStyle = C.band;
+      const sel = b.cells.filter(c => inSel(c.k)), rowsSel = [...new Set(sel.map(c => c.row))];
+      for (const r of rowsSel){   // one band per week row; a row the pattern continues from/into runs to the cell edge
+        const cs = sel.filter(c => c.row === r), f = cs[0], l = cs[cs.length-1];
+        const x0 = f.k === selA ? f.x : f.x - 94.25, x1 = l.k === selB ? l.x : l.x + 94.25;
+        ctx.fillRect(Math.round(x0), f.ny - 30, Math.round(x1) - Math.round(x0), 192);
+      }
+    }
     for (const c of b.cells){
-      const v = (!b.unpub && S.days[c.k]) || {}, isCard = c.k === V.hilite, isToday = c.k === V.today;
-      if (isCard){ ctx.fillStyle = C.card; rr(ctx, Math.round(c.x-71.5), c.ny-53, 143, 238, 30); ctx.fill(); }
+      const v = (!b.unpub && S.days[c.k]) || {}, isCard = V.hilite && (c.k === selA || c.k === selB), isToday = c.k === V.today;
+      // card: 144 wide on the real 1320/7 grid, snapped to pixels (x22 / 399 / 777 for columns 0 / 2 / 4, measured)
+      if (isCard){ ctx.fillStyle = C.card; rr(ctx, Math.round((c.col + 0.5) * W / 7 - 72), c.ny-53, 144, 238, 30); ctx.fill(); }
       if (isToday && !isCard){ ctx.fillStyle = C.pill; rr(ctx, Math.round(c.x-54.5), c.ny-32, 108, 64, 32); ctx.fill(); }
       const ink = isCard ? C.cardInk : C.ink;
       drawText(ctx, 'num', String(c.d), c.x, c.ny-17, 'center', ink);

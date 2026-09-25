@@ -1,6 +1,6 @@
-// Offline cache. v-3bbee022ddf7 is replaced by bundle.py with a hash of the build, so each rebuild
+// Offline cache. v-2913d71ce150 is replaced by bundle.py with a hash of the build, so each rebuild
 // installs a fresh cache; the app shell is served cache-first and refreshed in the background.
-const VERSION = 'v-3bbee022ddf7';
+const VERSION = 'v-2913d71ce150';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 const FONTS = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//;
 self.addEventListener('install', e => {
